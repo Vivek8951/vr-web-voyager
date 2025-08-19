@@ -6,7 +6,7 @@ import { Slider } from '@/components/ui/slider';
 import { BrowserHistory } from '@/components/BrowserHistory';
 import { URLSuggestions } from '@/components/URLSuggestions';
 import { MediaLoader } from '@/components/MediaLoader';
-import { VRScene3D } from '@/components/VRScene3D';
+import { VRWebView } from '@/components/VRWebView';
 import { 
   RotateCcw, 
   RotateCw, 
@@ -48,12 +48,16 @@ export const VRBrowser: React.FC<VRBrowserProps> = () => {
   const [contentType, setContentType] = useState<'website' | 'image' | 'video'>('website');
   const [headTracking, setHeadTracking] = useState(false);
   const [deviceOrientation, setDeviceOrientation] = useState({ x: 0, y: 0, z: 0 });
+  const [currentUrl, setCurrentUrl] = useState('https://example.com');
+  const [isLoading, setIsLoading] = useState(false);
   const leftEyeRef = useRef<HTMLIFrameElement>(null);
   const rightEyeRef = useRef<HTMLIFrameElement>(null);
   const singleViewRef = useRef<HTMLIFrameElement>(null);
 
   const loadUrl = () => {
     const targetUrl = url.startsWith('http') ? url : `https://${url}`;
+    setIsLoading(true);
+    setCurrentUrl(targetUrl);
     
     // Add to history
     if ((window as any).addToVRHistory) {
@@ -62,16 +66,23 @@ export const VRBrowser: React.FC<VRBrowserProps> = () => {
 
     setContentType('website');
     setMediaFile(null);
+    
+    // Simulate loading delay
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
   };
 
   const handleMediaLoad = (file: File, type: 'image' | 'video') => {
     setMediaFile(file);
     setContentType(type);
     setUrl(file.name);
+    setCurrentUrl(URL.createObjectURL(file));
   };
 
   const handleUrlLoad = (newUrl: string) => {
     setUrl(newUrl);
+    setCurrentUrl(newUrl);
     setContentType('website');
     setMediaFile(null);
     setTimeout(() => loadUrl(), 100);
@@ -79,7 +90,6 @@ export const VRBrowser: React.FC<VRBrowserProps> = () => {
 
   const toggleVRMode = () => {
     setIsVRMode(!isVRMode);
-    setTimeout(() => loadUrl(), 100);
   };
 
   const refresh = () => {
@@ -88,6 +98,7 @@ export const VRBrowser: React.FC<VRBrowserProps> = () => {
 
   const goHome = () => {
     setUrl('https://example.com');
+    setCurrentUrl('https://example.com');
     setContentType('website');
     setMediaFile(null);
     setTimeout(() => loadUrl(), 100);
@@ -192,8 +203,9 @@ export const VRBrowser: React.FC<VRBrowserProps> = () => {
               onClick={loadUrl}
               className="btn-vr"
               size="sm"
+              disabled={isLoading}
             >
-              Go
+              {isLoading ? 'Loading...' : 'Go'}
             </Button>
             <Button
               onClick={toggleVRMode}
@@ -398,14 +410,17 @@ export const VRBrowser: React.FC<VRBrowserProps> = () => {
 
       {/* Main VR Scene */}
       <div className="absolute inset-0 pt-20">
-        <VRScene3D
-          content={url}
+        <VRWebView
+          url={currentUrl}
           contentType={contentType}
           isVRMode={isVRMode}
           zoom={zoom[0]}
           distance={distance[0]}
           ipd={ipd[0]}
           mediaFile={mediaFile}
+          isLoading={isLoading}
+          deviceOrientation={deviceOrientation}
+          headTracking={headTracking}
         />
       </div>
 

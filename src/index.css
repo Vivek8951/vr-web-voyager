@@ -138,6 +138,12 @@
   .vr-glow {
     box-shadow: var(--shadow-vr);
     border: 1px solid hsl(var(--vr-glow) / 0.5);
+    transition: var(--transition-glow);
+  }
+
+  .vr-glow:hover {
+    box-shadow: var(--shadow-vr), 0 0 40px hsl(var(--vr-glow) / 0.7);
+    transform: translateY(-2px);
   }
 
   .vr-pulse {
@@ -150,6 +156,12 @@
     backdrop-filter: blur(20px);
     border: 1px solid hsl(var(--border) / 0.3);
     box-shadow: var(--shadow-glow);
+    transition: var(--transition-vr);
+  }
+
+  .vr-panel:hover {
+    border: 1px solid hsl(var(--vr-glow) / 0.6);
+    box-shadow: var(--shadow-vr);
   }
 
   /* Split Screen VR Effect */
@@ -161,6 +173,26 @@
   .vr-eye {
     transform: rotateY(var(--eye-rotation, 0deg));
     transition: var(--transition-vr);
+  }
+
+  /* VR Loading Animation */
+  .vr-loading {
+    animation: vr-loading 1.5s ease-in-out infinite;
+  }
+
+  /* VR Crosshair */
+  .vr-crosshair {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    border: 2px solid hsl(var(--vr-glow));
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1000;
+    animation: vr-pulse 2s ease-in-out infinite;
   }
 }
 
@@ -191,12 +223,36 @@
     50% { filter: brightness(1.2) hue-rotate(10deg); }
   }
 
+  @keyframes vr-loading {
+    0% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(180deg) scale(1.1); }
+    100% { transform: rotate(360deg) scale(1); }
+  }
+
+  @keyframes vr-float {
+    0%, 100% { transform: translateY(0px) rotateX(0deg); }
+    50% { transform: translateY(-10px) rotateX(5deg); }
+  }
+
   /* VR Button Variants */
   .btn-vr {
     background: var(--gradient-cyber);
     border: 1px solid hsl(var(--vr-glow) / 0.5);
     box-shadow: var(--shadow-glow);
     transition: var(--transition-vr);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-vr::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, hsl(var(--vr-glow) / 0.3), transparent);
+    transition: left 0.5s;
   }
 
   .btn-vr:hover {
@@ -205,7 +261,27 @@
     filter: brightness(1.1);
   }
 
+  .btn-vr:hover::before {
+    left: 100%;
+  }
+
   .btn-vr:active {
     transform: translateY(0);
+  }
+
+  /* VR Specific Utilities */
+  .vr-text-glow {
+    text-shadow: 0 0 10px hsl(var(--vr-glow) / 0.8);
+  }
+
+  .vr-border-glow {
+    border: 1px solid hsl(var(--vr-glow) / 0.5);
+    box-shadow: inset 0 0 10px hsl(var(--vr-glow) / 0.2);
+  }
+
+  .vr-bg-glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 }

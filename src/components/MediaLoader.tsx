@@ -66,7 +66,9 @@ export const MediaLoader: React.FC<MediaLoaderProps> = ({
     { name: 'MDN Docs', url: 'https://developer.mozilla.org' },
     { name: 'Archive.org', url: 'https://archive.org' },
     { name: 'CodePen', url: 'https://codepen.io' },
-    { name: 'Example.com', url: 'https://example.com' }
+    { name: 'Example.com', url: 'https://example.com' },
+    { name: 'WebVR Samples', url: 'https://webvr.info/samples/' },
+    { name: 'A-Frame Examples', url: 'https://aframe.io/examples/' }
   ];
 
   if (!isOpen) return null;
