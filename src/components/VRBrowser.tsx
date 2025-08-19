@@ -5,6 +5,8 @@ import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { BrowserHistory } from '@/components/BrowserHistory';
 import { URLSuggestions } from '@/components/URLSuggestions';
+import { MediaLoader } from '@/components/MediaLoader';
+import { VRScene3D } from '@/components/VRScene3D';
 import { 
   RotateCcw, 
   RotateCw, 
@@ -21,7 +23,11 @@ import {
   History,
   Moon,
   Sun,
-  Globe
+  Globe,
+  Upload,
+  Play,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 
 interface VRBrowserProps {}
@@ -36,7 +42,12 @@ export const VRBrowser: React.FC<VRBrowserProps> = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showMediaLoader, setShowMediaLoader] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [contentType, setContentType] = useState<'website' | 'image' | 'video'>('website');
+  const [headTracking, setHeadTracking] = useState(false);
+  const [deviceOrientation, setDeviceOrientation] = useState({ x: 0, y: 0, z: 0 });
   const leftEyeRef = useRef<HTMLIFrameElement>(null);
   const rightEyeRef = useRef<HTMLIFrameElement>(null);
   const singleViewRef = useRef<HTMLIFrameElement>(null);
@@ -48,13 +59,22 @@ export const VRBrowser: React.FC<VRBrowserProps> = () => {
     if ((window as any).addToVRHistory) {
       (window as any).addToVRHistory(targetUrl);
     }
-    
-    if (isVRMode) {
-      if (leftEyeRef.current) leftEyeRef.current.src = targetUrl;
-      if (rightEyeRef.current) rightEyeRef.current.src = targetUrl;
-    } else {
-      if (singleViewRef.current) singleViewRef.current.src = targetUrl;
-    }
+
+    setContentType('website');
+    setMediaFile(null);
+  };
+
+  const handleMediaLoad = (file: File, type: 'image' | 'video') => {
+    setMediaFile(file);
+    setContentType(type);
+    setUrl(file.name);
+  };
+
+  const handleUrlLoad = (newUrl: string) => {
+    setUrl(newUrl);
+    setContentType('website');
+    setMediaFile(null);
+    setTimeout(() => loadUrl(), 100);
   };
 
   const toggleVRMode = () => {
@@ -68,6 +88,8 @@ export const VRBrowser: React.FC<VRBrowserProps> = () => {
 
   const goHome = () => {
     setUrl('https://example.com');
+    setContentType('website');
+    setMediaFile(null);
     setTimeout(() => loadUrl(), 100);
   };
 
@@ -91,9 +113,42 @@ export const VRBrowser: React.FC<VRBrowserProps> = () => {
   };
 
   const handleNavigateFromHistory = (newUrl: string) => {
-    setUrl(newUrl);
-    setTimeout(() => loadUrl(), 100);
+    handleUrlLoad(newUrl);
   };
+
+  // Device orientation for head tracking
+  useEffect(() => {
+    if (!headTracking) return;
+
+    const handleOrientation = (event: DeviceOrientationEvent) => {
+      setDeviceOrientation({
+        x: event.beta || 0,   // front-to-back tilt
+        y: event.gamma || 0,  // left-to-right tilt
+        z: event.alpha || 0   // compass direction
+      });
+    };
+
+    const requestPermission = async () => {
+      if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
+        try {
+          const permission = await (DeviceOrientationEvent as any).requestPermission();
+          if (permission === 'granted') {
+            window.addEventListener('deviceorientation', handleOrientation);
+          }
+        } catch (error) {
+          console.log('Device orientation permission denied');
+        }
+      } else {
+        window.addEventListener('deviceorientation', handleOrientation);
+      }
+    };
+
+    requestPermission();
+
+    return () => {
+      window.removeEventListener('deviceorientation', handleOrientation);
+    };
+  }, [headTracking]);
 
   useEffect(() => {
     loadUrl();
@@ -164,6 +219,15 @@ export const VRBrowser: React.FC<VRBrowserProps> = () => {
               className="vr-glow"
             >
               {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </Button>
+            <Button
+              onClick={() => setShowMediaLoader(true)}
+              variant="outline"
+              size="sm"
+              className="vr-glow"
+              title="Load Media Files"
+            >
+              <Upload className="w-4 h-4" />
             </Button>
             <Button
               onClick={() => setShowSuggestions(true)}
@@ -275,6 +339,37 @@ export const VRBrowser: React.FC<VRBrowserProps> = () => {
                 </div>
               )}
 
+              {/* Head Tracking Toggle */}
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-muted-foreground">Head Tracking</label>
+                <Button
+                  onClick={() => setHeadTracking(!headTracking)}
+                  variant={headTracking ? "default" : "outline"}
+                  size="sm"
+                  className={headTracking ? "btn-vr" : ""}
+                >
+                  {headTracking ? 'ON' : 'OFF'}
+                </Button>
+              </div>
+
+              {/* Media Controls */}
+              {contentType !== 'website' && (
+                <div className="space-y-2">
+                  <label className="text-xs text-muted-foreground">
+                    Media: {mediaFile?.name || 'None'}
+                  </label>
+                  <Button
+                    onClick={() => setShowMediaLoader(true)}
+                    variant="outline"
+                    className="w-full vr-glow"
+                    size="sm"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Change Media
+                  </Button>
+                </div>
+              )}
+
               {/* Fullscreen Toggle */}
               <Button
                 onClick={toggleFullscreen}
@@ -301,67 +396,17 @@ export const VRBrowser: React.FC<VRBrowserProps> = () => {
         </Button>
       )}
 
-      {/* Main Browser View */}
+      {/* Main VR Scene */}
       <div className="absolute inset-0 pt-20">
-        {isVRMode ? (
-          /* VR Split Screen Mode */
-          <div 
-            className="flex h-full vr-split"
-            style={{
-              gap: `${ipd[0] - 65}px`
-            }}
-          >
-            {/* Left Eye */}
-            <div 
-              className="flex-1 vr-eye border-r border-border/30"
-              style={{
-                transform: `scale(${zoom[0] / 100}) translateZ(${distance[0] - 50}px)`,
-                '--eye-rotation': '-1deg'
-              } as React.CSSProperties}
-            >
-              <iframe
-                ref={leftEyeRef}
-                src={url}
-                className="w-full h-full border-0 vr-glow"
-                title="Left Eye View"
-                sandbox="allow-same-origin allow-scripts allow-forms allow-navigation"
-              />
-            </div>
-
-            {/* Right Eye */}
-            <div 
-              className="flex-1 vr-eye"
-              style={{
-                transform: `scale(${zoom[0] / 100}) translateZ(${distance[0] - 50}px)`,
-                '--eye-rotation': '1deg'
-              } as React.CSSProperties}
-            >
-              <iframe
-                ref={rightEyeRef}
-                src={url}
-                className="w-full h-full border-0 vr-glow"
-                title="Right Eye View"
-                sandbox="allow-same-origin allow-scripts allow-forms allow-navigation"
-              />
-            </div>
-          </div>
-        ) : (
-          /* Normal Single Screen Mode */
-          <div 
-            className="w-full h-full"
-            style={{
-              transform: `scale(${zoom[0] / 100}) translateZ(${distance[0] - 50}px)`
-            }}
-          >
-            <iframe
-              ref={singleViewRef}
-              src={url}
-              className="w-full h-full border-0 vr-glow"
-              title="Browser View"
-              sandbox="allow-same-origin allow-scripts allow-forms allow-navigation"
-            />
-          </div>
-        )}
+        <VRScene3D
+          content={url}
+          contentType={contentType}
+          isVRMode={isVRMode}
+          zoom={zoom[0]}
+          distance={distance[0]}
+          ipd={ipd[0]}
+          mediaFile={mediaFile}
+        />
       </div>
 
       {/* Gaze Selection Indicator */}
@@ -382,6 +427,14 @@ export const VRBrowser: React.FC<VRBrowserProps> = () => {
         isOpen={showHistory}
         onClose={() => setShowHistory(false)}
         onNavigate={handleNavigateFromHistory}
+      />
+
+      {/* Media Loader Modal */}
+      <MediaLoader
+        isOpen={showMediaLoader}
+        onClose={() => setShowMediaLoader(false)}
+        onLoadMedia={handleMediaLoad}
+        onLoadUrl={handleUrlLoad}
       />
       
       {/* URL Suggestions Modal */}
