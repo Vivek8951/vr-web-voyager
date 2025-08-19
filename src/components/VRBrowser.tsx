@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { BrowserHistory } from '@/components/BrowserHistory';
+import { URLSuggestions } from '@/components/URLSuggestions';
 import { 
   RotateCcw, 
   RotateCw, 
@@ -19,13 +20,14 @@ import {
   ArrowRight,
   History,
   Moon,
-  Sun
+  Sun,
+  Globe
 } from 'lucide-react';
 
 interface VRBrowserProps {}
 
 export const VRBrowser: React.FC<VRBrowserProps> = () => {
-  const [url, setUrl] = useState('https://www.google.com');
+  const [url, setUrl] = useState('https://example.com');
   const [isVRMode, setIsVRMode] = useState(false);
   const [zoom, setZoom] = useState([100]);
   const [distance, setDistance] = useState([50]);
@@ -33,6 +35,7 @@ export const VRBrowser: React.FC<VRBrowserProps> = () => {
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const leftEyeRef = useRef<HTMLIFrameElement>(null);
   const rightEyeRef = useRef<HTMLIFrameElement>(null);
@@ -64,7 +67,7 @@ export const VRBrowser: React.FC<VRBrowserProps> = () => {
   };
 
   const goHome = () => {
-    setUrl('https://www.google.com');
+    setUrl('https://example.com');
     setTimeout(() => loadUrl(), 100);
   };
 
@@ -161,6 +164,15 @@ export const VRBrowser: React.FC<VRBrowserProps> = () => {
               className="vr-glow"
             >
               {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </Button>
+            <Button
+              onClick={() => setShowSuggestions(true)}
+              variant="outline"
+              size="sm"
+              className="vr-glow"
+              title="VR-Friendly Sites"
+            >
+              <Globe className="w-4 h-4" />
             </Button>
           </div>
         </Card>
@@ -370,6 +382,13 @@ export const VRBrowser: React.FC<VRBrowserProps> = () => {
         isOpen={showHistory}
         onClose={() => setShowHistory(false)}
         onNavigate={handleNavigateFromHistory}
+      />
+      
+      {/* URL Suggestions Modal */}
+      <URLSuggestions
+        isVisible={showSuggestions}
+        onClose={() => setShowSuggestions(false)}
+        onSelectUrl={handleNavigateFromHistory}
       />
     </div>
   );
