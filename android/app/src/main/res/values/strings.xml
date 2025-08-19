@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">VR Web Voyager</string>
+    <string name="title_activity_main">VR Web Voyager</string>
+    <string name="package_name">com.vivek.vrwebvoyager</string>
+    <string name="custom_url_scheme">com.vivek.vrwebvoyager</string>
+</resources>
