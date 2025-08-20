@@ -34,7 +34,7 @@ interface VRBrowserProps {}
 
 export const VRBrowser: React.FC<VRBrowserProps> = () => {
   const [url, setUrl] = useState('https://example.com');
-  const [isVRMode, setIsVRMode] = useState(false);
+  const [isVRMode, setIsVRMode] = useState(true); // Start in VR mode by default
   const [zoom, setZoom] = useState([100]);
   const [distance, setDistance] = useState([50]);
   const [ipd, setIpd] = useState([65]);
@@ -46,7 +46,7 @@ export const VRBrowser: React.FC<VRBrowserProps> = () => {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [contentType, setContentType] = useState<'website' | 'image' | 'video'>('website');
-  const [headTracking, setHeadTracking] = useState(false);
+  const [headTracking, setHeadTracking] = useState(true); // Enable head tracking by default
   const [deviceOrientation, setDeviceOrientation] = useState({ x: 0, y: 0, z: 0 });
   const [currentUrl, setCurrentUrl] = useState('https://example.com');
   const [isLoading, setIsLoading] = useState(false);

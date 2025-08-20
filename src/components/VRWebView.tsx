@@ -312,10 +312,10 @@ export const VRWebView: React.FC<VRWebViewProps> = ({
   return (
     <div className="w-full h-full">
       {isVRMode ? (
-        // Stereoscopic VR Mode
-        <div className="flex w-full h-full">
+        // Stereoscopic VR Mode - Perfect for Google Cardboard
+        <div className="flex w-full h-full bg-black">
           {/* Left Eye */}
-          <div className="w-1/2 h-full border-r-2 border-primary/50">
+          <div className="w-1/2 h-full border-r border-gray-500" style={{ borderWidth: '1px' }}>
             <Canvas
               camera={{ 
                 position: [-(ipd - 65) * 0.001, 0, 0], 
