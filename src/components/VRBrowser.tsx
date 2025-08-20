@@ -162,7 +162,10 @@ export const VRBrowser: React.FC<VRBrowserProps> = () => {
   }, [headTracking]);
 
   useEffect(() => {
-    loadUrl();
+    // Auto-load on start
+    if (!isLoading) {
+      loadUrl();
+    }
   }, []);
 
   // Gaze selection simulation
