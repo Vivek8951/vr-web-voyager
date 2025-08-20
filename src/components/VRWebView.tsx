@@ -181,16 +181,17 @@ function VRMediaPlayer({
   mediaFile, 
   contentType, 
   zoom, 
-  distance 
+  distance,
+  videoRef 
 }: { 
   mediaFile: File;
   contentType: 'image' | 'video';
   zoom: number;
   distance: number;
+  videoRef?: React.RefObject<HTMLVideoElement>;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const [texture, setTexture] = useState<THREE.Texture | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     if (!mediaFile) return;
@@ -204,11 +205,7 @@ function VRMediaPlayer({
         tex.wrapT = THREE.RepeatWrapping;
         setTexture(tex);
       });
-    } else if (contentType === 'video' && videoRef.current) {
-      videoRef.current.src = url;
-      videoRef.current.load();
-      videoRef.current.play();
-      
+    } else if (contentType === 'video' && videoRef?.current) {
       const videoTexture = new THREE.VideoTexture(videoRef.current);
       videoTexture.minFilter = THREE.LinearFilter;
       videoTexture.magFilter = THREE.LinearFilter;
@@ -225,26 +222,14 @@ function VRMediaPlayer({
   });
 
   return (
-    <>
-      {contentType === 'video' && (
-        <video
-          ref={videoRef}
-          crossOrigin="anonymous"
-          loop
-          muted
-          playsInline
-          style={{ display: 'none' }}
-        />
-      )}
-      <Sphere 
-        ref={meshRef}
-        args={[8 * (zoom / 100), 64, 64]} 
-        scale={[-1, 1, 1]}
-        position={[0, 0, -distance / 10]}
-      >
-        <meshBasicMaterial map={texture} />
-      </Sphere>
-    </>
+    <Sphere 
+      ref={meshRef}
+      args={[8 * (zoom / 100), 64, 64]} 
+      scale={[-1, 1, 1]}
+      position={[0, 0, -distance / 10]}
+    >
+      <meshBasicMaterial map={texture} />
+    </Sphere>
   );
 }
 
@@ -309,8 +294,24 @@ export const VRWebView: React.FC<VRWebViewProps> = ({
   deviceOrientation,
   headTracking
 }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
   return (
     <div className="w-full h-full">
+      {/* Hidden video element for video textures - outside Canvas */}
+      {contentType === 'video' && mediaFile && (
+        <video
+          ref={videoRef}
+          crossOrigin="anonymous"
+          loop
+          muted
+          playsInline
+          autoPlay
+          style={{ display: 'none' }}
+          src={URL.createObjectURL(mediaFile)}
+        />
+      )}
+
       {isVRMode ? (
         // Stereoscopic VR Mode - Perfect for Google Cardboard
         <div className="flex w-full h-full bg-black">
@@ -342,6 +343,7 @@ export const VRWebView: React.FC<VRWebViewProps> = ({
                   contentType={contentType as 'image' | 'video'}
                   zoom={zoom}
                   distance={distance}
+                  videoRef={videoRef}
                 />
               ) : (
                 <WebsiteDisplay 
@@ -382,6 +384,7 @@ export const VRWebView: React.FC<VRWebViewProps> = ({
                   contentType={contentType as 'image' | 'video'}
                   zoom={zoom}
                   distance={distance}
+                  videoRef={videoRef}
                 />
               ) : (
                 <WebsiteDisplay 
@@ -411,6 +414,7 @@ export const VRWebView: React.FC<VRWebViewProps> = ({
               contentType={contentType as 'image' | 'video'}
               zoom={zoom}
               distance={distance}
+              videoRef={videoRef}
             />
           ) : (
             <WebsiteDisplay 
