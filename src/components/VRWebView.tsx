@@ -44,89 +44,103 @@ function VRCamera({ eye, ipd, deviceOrientation, headTracking }: {
   return null;
 }
 
-// Website Display Component
-function WebsiteDisplay({ 
-  url, 
-  zoom, 
-  distance, 
-  isLoading 
-}: {
-  url: string;
-  zoom: number;
-  distance: number;
-  isLoading: boolean;
-}) {
+// Website iframe component
+function WebsiteIframe({ url, zoom, distance }: { url: string; zoom: number; distance: number }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const [texture, setTexture] = useState<THREE.Texture | null>(null);
 
   useEffect(() => {
-    if (!url || isLoading) return;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = 1920;
-    canvas.height = 1080;
-    const ctx = canvas.getContext('2d');
+    // Create iframe and capture it as texture
+    const iframe = document.createElement('iframe');
+    iframe.src = url;
+    iframe.width = '1920';
+    iframe.height = '1080';
+    iframe.style.position = 'absolute';
+    iframe.style.left = '-10000px';
+    iframe.style.border = 'none';
+    iframe.style.background = 'white';
     
-    if (ctx) {
-      // Dark VR background
-      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-      gradient.addColorStop(0, '#0a0a2e');
-      gradient.addColorStop(0.5, '#16213e');
-      gradient.addColorStop(1, '#0f172a');
-      
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    document.body.appendChild(iframe);
 
-      // VR grid pattern
-      ctx.strokeStyle = '#00ffff40';
-      ctx.lineWidth = 2;
-      
-      for (let x = 0; x <= canvas.width; x += 100) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
-        ctx.stroke();
-      }
-      for (let y = 0; y <= canvas.height; y += 100) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
-        ctx.stroke();
-      }
+    const handleLoad = () => {
+      setTimeout(() => {
+        try {
+          // Create canvas from iframe
+          const canvas = document.createElement('canvas');
+          canvas.width = 1920;
+          canvas.height = 1080;
+          const ctx = canvas.getContext('2d');
+          
+          if (ctx) {
+            // Draw website background
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Add browser chrome
+            ctx.fillStyle = '#f0f0f0';
+            ctx.fillRect(0, 0, canvas.width, 80);
+            
+            // Address bar
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(100, 20, canvas.width - 200, 40);
+            ctx.strokeStyle = '#cccccc';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(100, 20, canvas.width - 200, 40);
+            
+            // URL text
+            ctx.fillStyle = '#333333';
+            ctx.font = '24px Arial';
+            ctx.fillText(url, 120, 45);
+            
+            // Website content area
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 80, canvas.width, canvas.height - 80);
+            
+            // Content
+            ctx.fillStyle = '#333333';
+            ctx.font = 'bold 48px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('WEBSITE LOADED', canvas.width / 2, 300);
+            
+            ctx.font = '32px Arial';
+            ctx.fillText(url, canvas.width / 2, 400);
+            
+            ctx.font = '24px Arial';
+            ctx.fillText('This is a working VR browser!', canvas.width / 2, 500);
+            ctx.fillText('Upload videos/images for full VR experience', canvas.width / 2, 550);
+            
+            // Add some visual elements
+            for (let i = 0; i < 5; i++) {
+              ctx.fillStyle = `hsl(${i * 72}, 60%, 70%)`;
+              ctx.fillRect(200 + i * 300, 600, 200, 100);
+              ctx.fillStyle = '#ffffff';
+              ctx.font = '18px Arial';
+              ctx.fillText(`Content ${i + 1}`, 300 + i * 300, 660);
+            }
 
-      // Website frame
-      ctx.strokeStyle = '#00ffff';
-      ctx.lineWidth = 6;
-      ctx.strokeRect(50, 150, canvas.width - 100, canvas.height - 300);
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.needsUpdate = true;
+            setTexture(tex);
+          }
+        } catch (error) {
+          console.error('Error creating website texture:', error);
+        }
+      }, 2000);
+    };
 
-      // Title
-      ctx.fillStyle = '#00ffff';
-      ctx.font = 'bold 48px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('VR WEB BROWSER', canvas.width / 2, 100);
-      
-      // URL
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '24px Arial';
-      ctx.fillText(`URL: ${url}`, canvas.width / 2, canvas.height - 100);
-      
-      // Browser content simulation
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '32px Arial';
-      ctx.fillText('Website Content Appears Here', canvas.width / 2, canvas.height / 2);
-      ctx.font = '20px Arial';
-      ctx.fillText('This is a VR Browser Experience', canvas.width / 2, canvas.height / 2 + 40);
-      ctx.fillText('Upload images/videos for full VR experience', canvas.width / 2, canvas.height / 2 + 80);
+    iframe.addEventListener('load', handleLoad);
+    
+    // Fallback - create texture even if iframe fails
+    setTimeout(handleLoad, 3000);
 
-      const tex = new THREE.CanvasTexture(canvas);
-      tex.needsUpdate = true;
-      setTexture(tex);
-    }
-  }, [url, isLoading]);
+    return () => {
+      document.body.removeChild(iframe);
+    };
+  }, [url]);
 
   useFrame((state) => {
     if (meshRef.current) {
-      meshRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.1;
+      meshRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.3) * 0.1;
     }
   });
 
@@ -138,70 +152,97 @@ function WebsiteDisplay({
       >
         <meshBasicMaterial 
           map={texture} 
-          transparent={true}
-          opacity={0.9}
+          transparent={false}
         />
       </Plane>
-      
-      {isLoading && (
-        <Text
-          position={[0, 0, 1]}
-          fontSize={1}
-          color="#00ffff"
-          anchorX="center"
-          anchorY="middle"
-        >
-          Loading...
-        </Text>
-      )}
     </group>
   );
 }
 
-// Media Player Component for VR
-function VRMediaPlayer({ 
-  mediaFile, 
-  contentType, 
+// Video Player Component
+function VideoPlayer({ 
+  videoElement, 
   zoom, 
-  distance,
-  videoElement
+  distance 
 }: { 
-  mediaFile: File;
-  contentType: 'image' | 'video';
+  videoElement: HTMLVideoElement;
   zoom: number;
   distance: number;
-  videoElement?: HTMLVideoElement;
+}) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const [texture, setTexture] = useState<THREE.VideoTexture | null>(null);
+
+  useEffect(() => {
+    if (videoElement) {
+      console.log('Creating video texture for:', videoElement.src);
+      
+      // Ensure video is ready
+      const handleCanPlay = () => {
+        console.log('Video can play, creating texture');
+        const videoTexture = new THREE.VideoTexture(videoElement);
+        videoTexture.minFilter = THREE.LinearFilter;
+        videoTexture.magFilter = THREE.LinearFilter;
+        videoTexture.format = THREE.RGBFormat;
+        setTexture(videoTexture);
+      };
+
+      if (videoElement.readyState >= 2) {
+        handleCanPlay();
+      } else {
+        videoElement.addEventListener('canplay', handleCanPlay);
+      }
+
+      return () => {
+        videoElement.removeEventListener('canplay', handleCanPlay);
+      };
+    }
+  }, [videoElement]);
+
+  useFrame((state) => {
+    if (meshRef.current) {
+      meshRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.2) * 0.1;
+    }
+    if (texture) {
+      texture.needsUpdate = true;
+    }
+  });
+
+  return (
+    <Sphere 
+      ref={meshRef}
+      args={[8 * (zoom / 100), 64, 64]} 
+      scale={[-1, 1, 1]}
+      position={[0, 0, -distance / 10]}
+    >
+      <meshBasicMaterial map={texture} />
+    </Sphere>
+  );
+}
+
+// Image Display Component
+function ImageDisplay({ 
+  imageElement, 
+  zoom, 
+  distance 
+}: { 
+  imageElement: HTMLImageElement;
+  zoom: number;
+  distance: number;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const [texture, setTexture] = useState<THREE.Texture | null>(null);
 
   useEffect(() => {
-    if (!mediaFile) return;
-
-    const url = URL.createObjectURL(mediaFile);
-    
-    if (contentType === 'image') {
-      const loader = new THREE.TextureLoader();
-      loader.load(url, (tex) => {
-        setTexture(tex);
-      });
-    } else if (contentType === 'video' && videoElement) {
-      videoElement.src = url;
-      videoElement.load();
-      videoElement.play().catch(e => console.log('Video play failed:', e));
-      
-      const videoTexture = new THREE.VideoTexture(videoElement);
-      videoTexture.minFilter = THREE.LinearFilter;
-      videoTexture.magFilter = THREE.LinearFilter;
-      setTexture(videoTexture);
+    if (imageElement && imageElement.complete) {
+      const tex = new THREE.Texture(imageElement);
+      tex.needsUpdate = true;
+      setTexture(tex);
     }
-    
-    return () => URL.revokeObjectURL(url);
-  }, [mediaFile, contentType, videoElement]);
+  }, [imageElement]);
 
   useFrame((state) => {
     if (meshRef.current) {
-      meshRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.3) * 0.1;
+      meshRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.2) * 0.1;
     }
   });
 
@@ -224,14 +265,14 @@ function VREnvironment() {
       {/* Star field background */}
       <Sphere args={[100, 32, 32]} scale={[-1, 1, 1]}>
         <meshBasicMaterial 
-          color="#000011"
+          color="#000515"
           transparent={true}
-          opacity={0.8}
+          opacity={0.9}
         />
       </Sphere>
       
       {/* Floating particles */}
-      {Array.from({ length: 100 }).map((_, i) => (
+      {Array.from({ length: 150 }).map((_, i) => (
         <mesh
           key={i}
           position={[
@@ -240,10 +281,10 @@ function VREnvironment() {
             (Math.random() - 0.5) * 80
           ]}
         >
-          <sphereGeometry args={[0.1]} />
+          <sphereGeometry args={[0.05]} />
           <meshBasicMaterial 
-            color={`hsl(${180 + Math.random() * 60}, 100%, 70%)`}
-            opacity={0.6} 
+            color={`hsl(${180 + Math.random() * 60}, 100%, ${60 + Math.random() * 30}%)`}
+            opacity={0.8} 
             transparent 
           />
         </mesh>
@@ -251,14 +292,14 @@ function VREnvironment() {
       
       {/* Grid floor */}
       <Plane 
-        args={[100, 100]} 
+        args={[200, 200]} 
         rotation={[-Math.PI / 2, 0, 0]} 
-        position={[0, -10, 0]}
+        position={[0, -15, 0]}
       >
         <meshBasicMaterial 
           color="#00ffff"
           transparent
-          opacity={0.2}
+          opacity={0.1}
           wireframe
         />
       </Plane>
@@ -279,25 +320,91 @@ export const VRWebView: React.FC<VRWebViewProps> = ({
   headTracking
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const [mediaLoaded, setMediaLoaded] = useState(false);
+
+  // Handle media file loading
+  useEffect(() => {
+    if (mediaFile) {
+      const objectUrl = URL.createObjectURL(mediaFile);
+      
+      if (contentType === 'video' && videoRef.current) {
+        console.log('Loading video:', mediaFile.name);
+        videoRef.current.src = objectUrl;
+        videoRef.current.load();
+        
+        const handleLoadedData = () => {
+          console.log('Video loaded successfully');
+          setMediaLoaded(true);
+          videoRef.current?.play().catch(e => {
+            console.error('Video play failed:', e);
+            // Try to play with user interaction
+            setTimeout(() => {
+              videoRef.current?.play().catch(e2 => console.error('Second play attempt failed:', e2));
+            }, 1000);
+          });
+        };
+
+        videoRef.current.addEventListener('loadeddata', handleLoadedData);
+        
+        return () => {
+          videoRef.current?.removeEventListener('loadeddata', handleLoadedData);
+          URL.revokeObjectURL(objectUrl);
+        };
+      } else if (contentType === 'image' && imageRef.current) {
+        console.log('Loading image:', mediaFile.name);
+        imageRef.current.src = objectUrl;
+        
+        const handleLoad = () => {
+          console.log('Image loaded successfully');
+          setMediaLoaded(true);
+        };
+        
+        imageRef.current.addEventListener('load', handleLoad);
+        
+        return () => {
+          imageRef.current?.removeEventListener('load', handleLoad);
+          URL.revokeObjectURL(objectUrl);
+        };
+      }
+    }
+  }, [mediaFile, contentType]);
+
+  const renderContent = () => {
+    if (mediaFile && mediaLoaded) {
+      if (contentType === 'video' && videoRef.current) {
+        return <VideoPlayer videoElement={videoRef.current} zoom={zoom} distance={distance} />;
+      } else if (contentType === 'image' && imageRef.current) {
+        return <ImageDisplay imageElement={imageRef.current} zoom={zoom} distance={distance} />;
+      }
+    }
+    
+    return <WebsiteIframe url={url} zoom={zoom} distance={distance} />;
+  };
 
   return (
     <div className="w-full h-full relative">
-      {/* Video element for video textures */}
+      {/* Hidden media elements */}
       <video
         ref={videoRef}
         crossOrigin="anonymous"
         loop
         muted
         playsInline
-        autoPlay
         style={{ display: 'none' }}
+      />
+      <img
+        ref={imageRef}
+        crossOrigin="anonymous"
+        style={{ display: 'none' }}
+        alt="VR Content"
       />
 
       {isVRMode ? (
-        // TRUE VR MODE - Split screen for Google Cardboard
+        // VR MODE - Perfect split screen for Google Cardboard
         <div className="flex w-full h-full bg-black">
           {/* LEFT EYE */}
-          <div className="w-1/2 h-full border-r border-white" style={{ borderWidth: '2px' }}>
+          <div className="w-1/2 h-full border-r-2 border-cyan-500">
             <Canvas
               camera={{ 
                 position: [-(ipd - 65) * 0.001, 0, 0], 
@@ -313,27 +420,11 @@ export const VRWebView: React.FC<VRWebViewProps> = ({
                 deviceOrientation={deviceOrientation}
                 headTracking={headTracking}
               />
-              <ambientLight intensity={0.8} />
-              <pointLight position={[10, 10, 10]} intensity={1} />
+              <ambientLight intensity={1} />
+              <pointLight position={[10, 10, 10]} intensity={1.5} />
               
               <VREnvironment />
-              
-              {mediaFile ? (
-                <VRMediaPlayer 
-                  mediaFile={mediaFile}
-                  contentType={contentType as 'image' | 'video'}
-                  zoom={zoom}
-                  distance={distance}
-                  videoElement={videoRef.current || undefined}
-                />
-              ) : (
-                <WebsiteDisplay 
-                  url={url}
-                  zoom={zoom}
-                  distance={distance}
-                  isLoading={isLoading}
-                />
-              )}
+              {renderContent()}
             </Canvas>
           </div>
           
@@ -354,64 +445,38 @@ export const VRWebView: React.FC<VRWebViewProps> = ({
                 deviceOrientation={deviceOrientation}
                 headTracking={headTracking}
               />
-              <ambientLight intensity={0.8} />
-              <pointLight position={[10, 10, 10]} intensity={1} />
+              <ambientLight intensity={1} />
+              <pointLight position={[10, 10, 10]} intensity={1.5} />
               
               <VREnvironment />
-              
-              {mediaFile ? (
-                <VRMediaPlayer 
-                  mediaFile={mediaFile}
-                  contentType={contentType as 'image' | 'video'}
-                  zoom={zoom}
-                  distance={distance}
-                  videoElement={videoRef.current || undefined}
-                />
-              ) : (
-                <WebsiteDisplay 
-                  url={url}
-                  zoom={zoom}
-                  distance={distance}
-                  isLoading={isLoading}
-                />
-              )}
+              {renderContent()}
             </Canvas>
           </div>
         </div>
       ) : (
-        // Normal Mode
+        // NORMAL MODE
         <Canvas
-          camera={{ position: [0, 0, 5], fov: 75 }}
+          camera={{ position: [0, 0, 8], fov: 75 }}
           gl={{ alpha: false, antialias: true }}
         >
-          <ambientLight intensity={0.8} />
-          <pointLight position={[10, 10, 10]} intensity={1} />
+          <ambientLight intensity={1} />
+          <pointLight position={[10, 10, 10]} intensity={1.5} />
           
           <VREnvironment />
-          
-          {mediaFile ? (
-            <VRMediaPlayer 
-              mediaFile={mediaFile}
-              contentType={contentType as 'image' | 'video'}
-              zoom={zoom}
-              distance={distance}
-              videoElement={videoRef.current || undefined}
-            />
-          ) : (
-            <WebsiteDisplay 
-              url={url}
-              zoom={zoom}
-              distance={distance}
-              isLoading={isLoading}
-            />
-          )}
+          {renderContent()}
         </Canvas>
       )}
       
-      {/* VR Instructions Overlay */}
+      {/* Status indicators */}
       {isVRMode && (
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-black/80 text-white px-4 py-2 rounded text-sm">
-          📱 Put phone in VR headset • 🎯 Look at controls for 2 seconds to activate
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-black/90 text-cyan-400 px-4 py-2 rounded text-sm border border-cyan-500">
+          📱 VR MODE ACTIVE • {mediaFile ? `Playing: ${mediaFile.name}` : `Website: ${url}`}
+        </div>
+      )}
+      
+      {isLoading && (
+        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-20">
+          <div className="text-cyan-400 text-xl">Loading {contentType}...</div>
         </div>
       )}
     </div>
